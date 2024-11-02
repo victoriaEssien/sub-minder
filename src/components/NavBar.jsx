@@ -21,12 +21,12 @@ function Navbar() {
 
   return (
     <div className='bg-white'>
-        <header className='inset-x-0 top-0 z-50'>
+        <header className='inset-x-0 top-0 z-50 border-b'>
             <nav className='flex items-center justify-between p-4 lg:px-12' aria-label='Global'>
                 <div className='flex lg:flex mr-8'>
                     <Link to="/" className='-m-1.5 p-1.5 flex items-center gap-x-2'>
                         {/* <img className='w-[35px]' src={Logo} alt="Logo"/> */}
-                        <span className='font-roboto font-bold text-xl text-[#3E6B8E] leading-8'>Sub-Minder</span>
+                        <span className='font-montserrat font-bold text-xl text-[#3E6B8E] leading-8'>Sub-Minder</span>
                     </Link>
                 </div>
                 <div className='flex lg:hidden'>
