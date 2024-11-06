@@ -1,7 +1,7 @@
 
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom"
-import { Hero, SignUp, Login } from "../index"
-import Navbar from "../components/NavBar"
+import { Hero, SignUp, Login, Dashboard } from "../index"
+import Navbar from "../components/Navbar"
 
 
 
@@ -21,6 +21,7 @@ function LandingPage() {
                     
                     <Route path="/signup" element={<SignUp />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
                     {/* <Route path="/explore" element={<ExplorePage />} />
                     <Route path="/kdrama/:id" element={<KdramaDetailPage />} />
                     <Route path="/home" element={<HomePage />} />

@@ -121,7 +121,7 @@ function SignUp() {
 
 
   return (
-    <section className='bg-hero h-screen'>
+    <section className='bg-hero h-full'>
         <Navbar />
         <div className='mx-4 md:mx-12 pt-12'>
             <h1 className="font-montserrat text-4xl md:text-4xl text-center font-bold text-[#3E6B8E] leading-normal md:leading-loose ">Create a Sub-Minder account</h1>
