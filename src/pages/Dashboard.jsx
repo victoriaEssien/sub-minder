@@ -1,7 +1,7 @@
 
 import { useState, Fragment, useEffect } from "react";
 import { db } from "../firebase_setup/firebase";
-import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import MoneyBagIcon from "../assets/icons/money-bag-icon.svg"
 import SubCountIcon from "../assets/icons/sub-count-icon.svg"
@@ -20,22 +20,108 @@ function Dashboard() {
     const [billingFrequency, setBillingFrequency] = useState('');
     const [lastBillingDate, setLastBillingDate] = useState('');
     const [userId, setUserId] = useState(null);
+    const [errors, setErrors] = useState({});
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [loadingSubscriptions, setLoadingSubscriptions] = useState(true); // New loading state
+    const [loadingSave, setLoadingSave] = useState(false); // New loading state for save button
+
 
     useEffect(() => {
-        const auth = getAuth()
-        const user = auth.currentUser
-        if (user) {
-            setUserId(user.uid);
+        const auth = getAuth();
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setUserId(user.uid);  // Set the userId from Firebase user
+                fetchSubscriptions(user.uid);  // Fetch subscriptions when user is authenticated
+            } else {
+                console.log("User is not authenticated");
+            }
+        });
+    
+        // Cleanup the listener when the component is unmounted
+        return () => unsubscribe();
+    }, []);
+    
+    
+
+    const fetchSubscriptions = async (uid) => {
+        try {
+            const subscriptionsRef = collection(db, "users", uid, "subscriptions");
+            const snapshot = await getDocs(subscriptionsRef);
+            const subs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            setSubscriptions(subs);
+        } catch (error) {
+            console.error("Error fetching subscriptions:", error);
+        } finally {
+            setLoadingSubscriptions(false); // Set loading subscriptions to false
         }
-    }, [])
+    };
+
+    // Helper function to calculate next billing date
+    const calculateNextBillingDate = (lastBillingDate, billingFrequency) => {
+        const date = new Date(lastBillingDate);
+        if (billingFrequency === "Monthly") {
+            date.setMonth(date.getMonth() + 1);
+        } else if (billingFrequency === "Yearly") {
+            date.setFullYear(date.getFullYear() + 1);
+        }
+        return date;
+    };
+
+    // Helper function to calculate days until next billing
+    const daysUntilNextBilling = (nextBillingDate) => {
+        const currentDate = new Date();
+        const timeDiff = nextBillingDate - currentDate;
+        return Math.ceil(timeDiff / (1000 * 3600 * 24)); // Convert to days
+    };
+
+    // Function to format "In X days"
+    const formatDaysUntilNextBilling = (days) => {
+        if (days <= 5) {
+            return <span className="text-[#E34F4F]">Due In {days} days</span>;
+        }
+        return `In ${days} days`;
+    };
+
+    // Sort subscriptions by next billing date
+    const sortedSubscriptions = subscriptions.map(subscription => {
+        const nextBillingDate = calculateNextBillingDate(subscription.lastBillingDate, subscription.billingFrequency);
+        const daysRemaining = daysUntilNextBilling(nextBillingDate);
+        return { ...subscription, nextBillingDate, daysRemaining };
+    }).sort((a, b) => a.nextBillingDate - b.nextBillingDate);
 
 
     const handleModalOpen = () => setIsModalOpen(true);
-    const handleModalClose = () => setIsModalOpen(false);
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setErrors({});
+    };
 
-    // const validateServiceName = () => {
-        
-    // }
+    const validateForm = () => {
+        const newErrors = {};
+        let isValid = true;
+    
+        if (!serviceName) {
+            newErrors.serviceName = "Service name is required.";
+            isValid = false;
+        }
+        if (!billingAmount || Number.isNaN(Number.parseFloat(billingAmount))) {
+            newErrors.billingAmount = "Billing amount must be a valid number.";
+            isValid = false;
+        }
+        if (!billingFrequency) {
+            newErrors.billingFrequency = "Billing frequency is required.";
+            isValid = false;
+        }
+        if (!lastBillingDate) {
+            newErrors.lastBillingDate = "Last billing date is required.";
+            isValid = false;
+        }
+    
+        setErrors(newErrors);
+        setTimeout(() => setErrors({}), 5000); // Clear errors after 5 seconds
+        return isValid; // Return the result of validation
+    };
+    
 
     const handleSaveSubscription = async (e) => {
         e.preventDefault();
@@ -43,6 +129,13 @@ function Dashboard() {
         if (!userId) {
             alert("You must be logged in to add a subscription.")
             return;
+        }
+
+        setLoadingSave(true); // Set loading save to true
+
+        // Ensure form is validated
+        if (!validateForm()) {
+            return; // Stop here if validation fails
         }
 
         try {
@@ -74,6 +167,8 @@ function Dashboard() {
             setLastBillingDate('');
         } catch (error) {
             console.error("Error adding subscription: ", error);
+        } finally {
+            setLoadingSave(false); // Set loading save to false
         }
     };
 
@@ -117,44 +212,32 @@ function Dashboard() {
 
                 <div className="mt-10 bg-[#fff] p-6 rounded-lg">
                     {/* Subscription service list */}
-                    <div className="flex flex-row gap-x-3 items-start py-4 border-b">
-                        <div>
-                            <img src={NetflixLogo} alt="netflix logo" />
-                        </div>
-                        <div className="w-full">
-                            <div className="flex flex-row items-center justify-between">
-                            <p className="font-roboto text-base text-[#808080]">Netflix</p>
-                            <p className="font-roboto text-base text-[#808080]">&#8358;2,200.00</p>
-                            </div>
-                            <p className="font-roboto font-medium text-base text-[#3e6b8e] mt-2">NBD: 05/12/2024</p>
-                        </div>
-                    </div>
+                    {loadingSubscriptions ? (
+                            <p className="text-center text-[#808080]">Loading subscriptions...</p>
+                        ) : subscriptions.length > 0 ? (
+                            sortedSubscriptions.map((subscription) => (
+                                <div key={subscription.id} className="flex flex-row gap-x-3 items-start py-4 border-b">
+                                    <div>
+                                        <img src={NetflixLogo} alt={`${subscription.serviceName} logo`} />
+                                    </div>
+                                    <div className="w-full">
+                                        <div className="flex flex-row items-center justify-between">
+                                            <p className="font-roboto text-base text-[#808080]">{subscription.serviceName}</p>
+                                            <p className="font-roboto text-base text-[#808080]">
+                                                {subscription.currency} {subscription.billingAmount.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <p className="font-roboto font-medium text-base text-[#3e6b8e] mt-2">
+                                            NBD: {new Date(subscription.lastBillingDate).toLocaleDateString("en-GB")}
+                                        </p>
+                                        <p className="font-roboto font-medium text-sm text-[#2d2d2d] mt-2">{formatDaysUntilNextBilling(subscription.daysRemaining)}</p>
 
-                    <div className="flex flex-row gap-x-3 items-start py-4 border-b">
-                        <div>
-                            <img src={NetflixLogo} alt="netflix logo" />
-                        </div>
-                        <div className="w-full">
-                            <div className="flex flex-row items-center justify-between">
-                            <p className="font-roboto text-base text-[#808080]">Netflix</p>
-                            <p className="font-roboto text-base text-[#808080]">&#8358;2,200.00</p>
-                            </div>
-                            <p className="font-roboto font-medium text-base text-[#3e6b8e] mt-2">NBD: 05/12/2024</p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-row gap-x-3 items-start py-4 border-b">
-                        <div>
-                            <img src={NetflixLogo} alt="netflix logo" />
-                        </div>
-                        <div className="w-full">
-                            <div className="flex flex-row items-center justify-between">
-                            <p className="font-roboto text-base text-[#808080]">Netflix</p>
-                            <p className="font-roboto text-base text-[#808080]">&#8358;2,200.00</p>
-                            </div>
-                            <p className="font-roboto font-medium text-base text-[#3e6b8e] mt-2">NBD: 05/12/2024</p>
-                        </div>
-                    </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-[#808080]">No subscriptions added yet.</p>
+                        )}
                 </div>
             </div>
 
@@ -215,6 +298,8 @@ function Dashboard() {
                                                 <option className="font-roboto text-[#2d2d2d]" key={index} value={service}>{service}</option>
                                             ))}
                                         </select>
+                                        {errors.serviceName && (
+                                        <p className="text-sm text-[#E34F4F] mt-1">{errors.serviceName}</p>)}
                                         </div>
 
                                         {/* Billing amount */}
@@ -247,10 +332,9 @@ function Dashboard() {
                                             placeholder="Enter amount"
                                             />
                                         </div>
-
-                                        {/* {emailError && <p className='text-sm text-[#E34F4F] mt-1'>{emailError}</p>} */}
+                                        {errors.billingAmount && (
+                                        <p className="text-sm text-[#E34F4F] mt-1">{errors.billingAmount}</p>)}
                                         </div>
-
 
                                         {/* Billing frequency dropdown */}
                                         <div className="mt-6">
@@ -268,6 +352,8 @@ function Dashboard() {
                                             <option value="Monthly">Monthly</option>
                                             <option value="Yearly">Yearly</option>
                                         </select>
+                                        {errors.billingFrequency && (
+                                        <p className="text-sm text-[#E34F4F] mt-1">{errors.billingFrequency}</p>)}
                                         </div>
 
                                         {/* Last billing date */}
@@ -276,23 +362,23 @@ function Dashboard() {
                                             Last Billing Date
                                         </label>
                                         <input type="date" name="billing_date" value={lastBillingDate} onChange={(e) => setLastBillingDate(e.target.value)} className="mt-3 font-roboto mx-auto w-full md:w-full block rounded-lg border border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E] '" />
-                                        {/* {emailError && <p className='text-sm text-[#E34F4F] mt-1'>{emailError}</p>} */}
+                                        {errors.lastBillingDate && (
+                                        <p className="text-sm text-[#E34F4F] mt-1">{errors.lastBillingDate}</p>)}
                                         </div>
 
                                         {/* Submit and Cancel buttons */}
                                         <div className="mt-10 flex flex-col-reverse gap-y-4 md:flex-row md:justify-end md:space-x-4">
                                         <button
                                             type="button"
-                                            className="inline-flex justify-center rounded-md border border-primary-600 bg-lightgray-100 px-8 py-3 text-sm font-os font-medium text-primary-600"
+                                            className="inline-flex justify-center rounded-md border border-[#d1d1d1] bg-[#fff] px-8 py-3 text-sm font-roboto text-primary-600"
                                             onClick={handleModalClose}
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
-                                            className="inline-flex justify-center px-8 py-3 text-sm font-os font-medium text-[#2d2d2d] bg-[#F5B400] hover:bg-[#E3A000] mx-auto w-full md:w-fit rounded-lg"
-                                            // disabled={loadingSubmit} 
-                                            // onClick={handleSubmit}
+                                            className={`inline-flex justify-center px-8 py-3 text-sm font-roboto text-[#2d2d2d] bg-[#F5B400] hover:bg-[#E3A000] mx-auto w-full md:w-fit rounded-lg ${loadingSave ? "opacity-50 cursor-not-allowed" : ""}`}
+                                            disabled={loadingSave}
                                         >
                                             Save
                                             {/* {loadingSubmit ? "Adding..." : "Add Subscription"} */}
