@@ -6,11 +6,16 @@ import NetflixLogo from "../assets/icons/netflix-logo.svg"
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import servicesData from "../services.json"
+import currenciesData from "../currencies.json"
 
 
 function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [serviceName, setServiceName] = useState('');
+    const [billingAmount, setBillingAmount] = useState('');
+    const [currency, setCurrency] = useState('USD'); // default currency
+    
+
     const handleModalOpen = () => {
         setIsModalOpen(true);
     };
@@ -168,9 +173,36 @@ function Dashboard() {
                                         <label htmlFor="billing_amount" className="block text-sm font-roboto text-[#2d2d2d]">
                                             Billing Amount
                                         </label>
-                                        <input type="text" name="billing_amount" value={serviceName} onChange={(e) => setServiceName(e.target.value)} onBlur={() => validateServiceName(serviceName)} className="mt-3 font-roboto mx-auto w-full md:w-full block rounded-lg border border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E] '" placeholder="Service name (e.g., Netflix)" />
+
+                                        <div className="flex items-center mt-3">
+                                            <select
+                                            id="currency"
+                                            name="currency"
+                                            value={currency}
+                                            onChange={(e) => setCurrency(e.target.value)}
+                                            className="block md:w-1/4 px-4 py-3 font-os text-base border border-[#D1D1D1] rounded-l-lg outline-none"
+                                            >
+                                            {currenciesData.currencies.map((currencyOption) => (
+                                                <option key={currencyOption.code} value={currencyOption.code}>
+                                                {currencyOption.code}
+                                                </option>
+                                            ))}
+                                            </select>
+
+                                            <input
+                                            type="text"
+                                            name="billing_amount"
+                                            value={billingAmount}
+                                            onChange={(e) => setBillingAmount(e.target.value)}
+                                            onBlur={() => validateServiceName(serviceName)}
+                                            className="w-3/4 font-roboto block rounded-r-lg border border-l-0 border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E]"
+                                            placeholder="Enter amount"
+                                            />
+                                        </div>
+
                                         {/* {emailError && <p className='text-sm text-[#E34F4F] mt-1'>{emailError}</p>} */}
                                         </div>
+
 
                                         {/* Billing frequency dropdown */}
                                         <div className="mt-6">
