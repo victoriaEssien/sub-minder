@@ -1,5 +1,8 @@
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
+import { db } from "../firebase_setup/firebase";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import MoneyBagIcon from "../assets/icons/money-bag-icon.svg"
 import SubCountIcon from "../assets/icons/sub-count-icon.svg"
 import NetflixLogo from "../assets/icons/netflix-logo.svg"
@@ -13,20 +16,66 @@ function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [serviceName, setServiceName] = useState('');
     const [billingAmount, setBillingAmount] = useState('');
-    const [currency, setCurrency] = useState('USD'); // default currency
-    
+    const [currency, setCurrency] = useState('USD');
+    const [billingFrequency, setBillingFrequency] = useState('');
+    const [lastBillingDate, setLastBillingDate] = useState('');
+    const [userId, setUserId] = useState(null);
 
-    const handleModalOpen = () => {
-        setIsModalOpen(true);
-    };
+    useEffect(() => {
+        const auth = getAuth()
+        const user = auth.currentUser
+        if (user) {
+            setUserId(user.uid);
+        }
+    }, [])
 
-    const handleModalClose = () => {
-        setIsModalOpen(false);
-    };
 
-    const validateServiceName = () => {
+    const handleModalOpen = () => setIsModalOpen(true);
+    const handleModalClose = () => setIsModalOpen(false);
+
+    // const validateServiceName = () => {
         
-    }
+    // }
+
+    const handleSaveSubscription = async (e) => {
+        e.preventDefault();
+
+        if (!userId) {
+            alert("You must be logged in to add a subscription.")
+            return;
+        }
+
+        try {
+            const userDocRef = doc(db, "users", userId); // Reference to the current user's document
+            const userDocSnapshot = await getDoc(userDocRef);
+
+            if (!userDocSnapshot.exists()) {
+                console.log("User document not found.");
+                return;
+            }
+
+            // Add subscription as a sub-collection under the user's document
+            const subscriptionRef = collection(userDocRef, "subscriptions");
+            await addDoc(subscriptionRef, {
+                serviceName,
+                billingAmount: Number.parseFloat(billingAmount),
+                currency,
+                billingFrequency,
+                lastBillingDate,
+            });
+
+            alert("Subscription added successfully!");
+            handleModalClose();
+            // Reset form fields
+            setServiceName('');
+            setBillingAmount('');
+            setCurrency('USD');
+            setBillingFrequency('');
+            setLastBillingDate('');
+        } catch (error) {
+            console.error("Error adding subscription: ", error);
+        }
+    };
 
       
   return (
@@ -148,7 +197,7 @@ function Dashboard() {
                                         Add a Subscription
                                     </DialogTitle>
                                     <div className="mt-3">
-                                    <form>
+                                    <form onSubmit={handleSaveSubscription}>
                                         {/* Service name */}
                                         <div className="mt-6">
                                         <label htmlFor="service_name" className="block text-sm font-roboto text-[#2d2d2d]">
@@ -157,9 +206,9 @@ function Dashboard() {
                                         <select
                                             id="service_name"
                                             name="service_name"
+                                            value={serviceName}
+                                            onChange={(e) => setServiceName(e.target.value)}
                                             className="mt-3 block w-full px-4 py-3 font-os text-base border border-[#D1D1D1] outline-none sm:text-sm rounded-lg"
-                                            // value={formData.list}
-                                            // onChange={handleChange}
                                         >
                                             <option value="">Select a service</option>
                                             {servicesData.services.map((service, index) => (
@@ -194,7 +243,6 @@ function Dashboard() {
                                             name="billing_amount"
                                             value={billingAmount}
                                             onChange={(e) => setBillingAmount(e.target.value)}
-                                            onBlur={() => validateServiceName(serviceName)}
                                             className="w-3/4 font-roboto block rounded-r-lg border border-l-0 border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E]"
                                             placeholder="Enter amount"
                                             />
@@ -212,9 +260,9 @@ function Dashboard() {
                                         <select
                                             id="billing_frequency"
                                             name="billing_frequency"
+                                            value={billingFrequency}
+                                            onChange={(e) => setBillingFrequency(e.target.value)}
                                             className="mt-3 block w-full px-4 py-3 font-os text-base border border-[#D1D1D1] outline-none sm:text-sm rounded-lg"
-                                            // value={formData.list}
-                                            // onChange={handleChange}
                                         >
                                             <option value="">Select billing frequency</option>
                                             <option value="Monthly">Monthly</option>
@@ -227,7 +275,7 @@ function Dashboard() {
                                         <label htmlFor="billing_date" className="block text-sm font-roboto text-[#2d2d2d]">
                                             Last Billing Date
                                         </label>
-                                        <input type="date" name="billing_date" value={serviceName} onChange={(e) => setServiceName(e.target.value)} onBlur={() => validateServiceName(serviceName)} className="mt-3 font-roboto mx-auto w-full md:w-full block rounded-lg border border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E] '" />
+                                        <input type="date" name="billing_date" value={lastBillingDate} onChange={(e) => setLastBillingDate(e.target.value)} className="mt-3 font-roboto mx-auto w-full md:w-full block rounded-lg border border-[#D1D1D1] px-4 py-3 text-base text-[#2d2d2d] placeholder:text-[#ccc] outline-[#3E6B8E] '" />
                                         {/* {emailError && <p className='text-sm text-[#E34F4F] mt-1'>{emailError}</p>} */}
                                         </div>
 
@@ -242,10 +290,11 @@ function Dashboard() {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="inline-flex justify-center px-8 py-3 text-sm font-os font-medium text-[#fff] bg-[#2E7D32] hover:bg-[#29702d] mx-auto w-full md:w-fit rounded-lg"
+                                            className="inline-flex justify-center px-8 py-3 text-sm font-os font-medium text-[#2d2d2d] bg-[#F5B400] hover:bg-[#E3A000] mx-auto w-full md:w-fit rounded-lg"
                                             // disabled={loadingSubmit} 
                                             // onClick={handleSubmit}
                                         >
+                                            Save
                                             {/* {loadingSubmit ? "Adding..." : "Add Subscription"} */}
                                         </button>
                                         </div>
