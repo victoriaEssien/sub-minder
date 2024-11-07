@@ -165,10 +165,13 @@ function Dashboard() {
             setCurrency('USD');
             setBillingFrequency('');
             setLastBillingDate('');
+            // Refresh subscriptions after adding a new one
+            fetchSubscriptions(userId)
         } catch (error) {
             console.error("Error adding subscription: ", error);
         } finally {
             setLoadingSave(false); // Set loading save to false
+            setLoadingSubscriptions(false);
         }
     };
 
