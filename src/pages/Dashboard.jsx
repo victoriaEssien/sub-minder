@@ -172,6 +172,20 @@ function Dashboard() {
         }
     };
 
+    // Dynamically calculate total monthly cost and total subscriptions
+    const NGNCost = subscriptions
+        .filter(subscription => subscription.currency === "NGN")
+        .reduce((total, subscription) => total + subscription.billingAmount, 0)
+        .toLocaleString();
+
+        const USDCost = subscriptions
+        .filter(subscription => subscription.currency === "USD")
+        .reduce((total, subscription) => total + subscription.billingAmount, 0)
+        .toLocaleString();
+
+    const totalSubscriptions = subscriptions.length;
+
+
       
   return (
     <main className="bg-[#fafafa] h-full">
@@ -188,23 +202,33 @@ function Dashboard() {
             </div>
 
             <div className="flex flex-col md:flex-row gap-6 mt-12">
-                {/* Total cost card */}
-                <div className="flex flex-col bg-[#fff] p-6 rounded-lg w-full md:w-3/12">
-                    <div className="flex flex-row items-center justify-between">
-                    <h5 className="text-sm font-roboto text-[#808080]">Monthly Costs</h5>
-                    <img src={MoneyBagIcon} alt="" />
-                    </div>
-                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">&#8358;7,400.00</h1>
-                </div>
-                
-                {/* Total Subscriptions */}
-                <div className="flex flex-col bg-[#fff] px-6 py-6 rounded-lg w-full md:w-3/12">
+                                {/* Total Subscriptions */}
+                                <div className="flex flex-col bg-[#fff] px-6 py-6 rounded-lg w-full md:w-3/12">
                     <div className="flex flex-row items-center justify-between">
                     <h5 className="text-sm font-roboto text-[#808080]">Total Subscriptions</h5>
                     <img src={SubCountIcon} alt="" />
                     </div>
-                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">05</h1>
+                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">{totalSubscriptions}</h1>
                 </div>
+
+                {/* NGN cost card */}
+                <div className="flex flex-col bg-[#fff] p-6 rounded-lg w-full md:w-3/12">
+                    <div className="flex flex-row items-center justify-between">
+                    <h5 className="text-sm font-roboto text-[#808080]">NGN Cost</h5>
+                    <img src={MoneyBagIcon} alt="" />
+                    </div>
+                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">{NGNCost}</h1>
+                </div>
+
+                {/* USD cost card */}
+                <div className="flex flex-col bg-[#fff] p-6 rounded-lg w-full md:w-3/12">
+                    <div className="flex flex-row items-center justify-between">
+                    <h5 className="text-sm font-roboto text-[#808080]">USD Cost</h5>
+                    <img src={MoneyBagIcon} alt="" />
+                    </div>
+                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">{USDCost}</h1>
+                </div>
+                
             </div>
 
             <div className="mt-16">
