@@ -67,6 +67,13 @@ function Dashboard() {
         return date;
     };
 
+    // Helper function to calculate the exact next billing date based on days remaining
+    const calculateNextBillingDateFromDays = (daysRemaining) => {
+        const currentDate = new Date();
+        currentDate.setDate(currentDate.getDate() + daysRemaining);
+        return currentDate;
+    };
+
     // Helper function to calculate days until next billing
     const daysUntilNextBilling = (nextBillingDate) => {
         const currentDate = new Date();
@@ -86,7 +93,9 @@ function Dashboard() {
     const sortedSubscriptions = subscriptions.map(subscription => {
         const nextBillingDate = calculateNextBillingDate(subscription.lastBillingDate, subscription.billingFrequency);
         const daysRemaining = daysUntilNextBilling(nextBillingDate);
-        return { ...subscription, nextBillingDate, daysRemaining };
+        // Calculate the next billing date based on days remaining
+    const preciseNextBillingDate = calculateNextBillingDateFromDays(daysRemaining);
+        return { ...subscription, nextBillingDate: preciseNextBillingDate, daysRemaining };
     }).sort((a, b) => a.nextBillingDate - b.nextBillingDate);
 
 
@@ -255,7 +264,7 @@ function Dashboard() {
                                             </p>
                                         </div>
                                         <p className="font-roboto font-medium text-base text-[#3e6b8e] mt-2">
-                                            NBD: {new Date(subscription.lastBillingDate).toLocaleDateString("en-GB")}
+                                            NBD: {new Date(subscription.nextBillingDate).toLocaleDateString("en-GB")}
                                         </p>
                                         <p className="font-roboto font-medium text-sm text-[#2d2d2d] mt-2">{formatDaysUntilNextBilling(subscription.daysRemaining)}</p>
 
