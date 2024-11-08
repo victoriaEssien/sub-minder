@@ -220,7 +220,7 @@ function Dashboard() {
                     <h5 className="text-sm font-roboto text-[#808080]">NGN Cost</h5>
                     <img src={MoneyBagIcon} alt="" />
                     </div>
-                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">{NGNCost}</h1>
+                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">&#8358; {NGNCost}</h1>
                 </div>
 
                 {/* USD cost card */}
@@ -229,7 +229,7 @@ function Dashboard() {
                     <h5 className="text-sm font-roboto text-[#808080]">USD Cost</h5>
                     <img src={MoneyBagIcon} alt="" />
                     </div>
-                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">{USDCost}</h1>
+                    <h1 className="text-[32px] font-roboto font-extrabold text-[#3E6B8E]">&#36; {USDCost}</h1>
                 </div>
                 
             </div>
